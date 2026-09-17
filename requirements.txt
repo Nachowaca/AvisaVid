@@ -1,0 +1,5 @@
+Pillow
+pytesseract
+faster-whisper
+pyspellchecker
+deep-translator
