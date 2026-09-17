@@ -1,0 +1,70 @@
+AvisaVid — Instalación en Mac
+=============================
+
+PASO 0 — Solo la primera vez (dependencias del sistema)
+--------------------------------------------------------
+Abrí la app "Terminal" y pegá:
+
+    brew install ffmpeg tesseract tesseract-lang
+
+
+PASO 1 — Descomprimir
+-----------------------
+Descomprimí AvisaVid.zip donde quieras (ej. Escritorio o Documentos).
+
+
+PASO 2 — Instalar dependencias de Python
+-------------------------------------------
+En Terminal, entrá a la carpeta descomprimida y corré:
+
+    cd AvisaVid
+    pip3 install -r requirements.txt
+
+
+PASO 3 — Compilar la app
+---------------------------
+Seguís en la misma carpeta, y corrés uno por uno:
+
+    pip3 install py2app
+
+    mkdir icon.iconset
+    sips -z 16 16   icon.png --out icon.iconset/icon_16x16.png
+    sips -z 32 32   icon.png --out icon.iconset/icon_16x16@2x.png
+    sips -z 32 32   icon.png --out icon.iconset/icon_32x32.png
+    sips -z 64 64   icon.png --out icon.iconset/icon_32x32@2x.png
+    sips -z 128 128 icon.png --out icon.iconset/icon_128x128.png
+    sips -z 256 256 icon.png --out icon.iconset/icon_128x128@2x.png
+    sips -z 256 256 icon.png --out icon.iconset/icon_256x256.png
+    sips -z 512 512 icon.png --out icon.iconset/icon_256x256@2x.png
+    sips -z 512 512 icon.png --out icon.iconset/icon_512x512.png
+    cp icon.png icon.iconset/icon_512x512@2x.png
+    iconutil -c icns icon.iconset
+
+    python3 setup.py py2app
+
+    hdiutil create -volname "AvisaVid" -srcfolder dist/AvisaVid.app -ov -format UDZO AvisaVid.dmg
+
+Al terminar vas a tener "AvisaVid.dmg" en esa misma carpeta.
+
+
+PASO 4 — Instalar
+--------------------
+1. Doble click en AvisaVid.dmg para abrirlo.
+2. Arrastrá AvisaVid.app a la carpeta Aplicaciones.
+3. Expulsá el .dmg (botón derecho > Expulsar).
+
+
+PASO 5 — Primera apertura (importante)
+------------------------------------------
+La primera vez, macOS va a avisar "no se puede verificar el desarrollador"
+(es normal, no está firmada porque es de uso personal).
+
+Solución: click derecho sobre AvisaVid.app > Abrir > confirmar "Abrir".
+Solo hace falta esa vez. Después abre normal con doble click.
+
+
+NOTA
+------
+ffmpeg y tesseract (Paso 0) tienen que estar instalados en CUALQUIER Mac
+donde quieras correr la app, incluso si ya la compilaste en otra. Si al
+abrirla te avisa "Faltan dependencias", repetí el Paso 0 en esa Mac.
