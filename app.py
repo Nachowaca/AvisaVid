@@ -546,15 +546,20 @@ class AvisaVidApp:
         drop_panel.pack(fill="x", **pad)
         row = drop_panel.inner
 
-        preview_wrap = tk.Frame(row, bg=PANEL_BG, width=88, height=54)
-        preview_wrap.pack(side="left", padx=(14, 10), pady=12, anchor="n")
+        # Centrado como bloque: un frame de contenido sin fill, empaquetado
+        # con expand=True, queda centrado en el ancho disponible del panel.
+        content = tk.Frame(row, bg=PANEL_BG)
+        content.pack(expand=True, pady=12)
+
+        preview_wrap = tk.Frame(content, bg=PANEL_BG, width=88, height=54)
+        preview_wrap.pack(side="left", padx=(0, 14), anchor="n")
         preview_wrap.pack_propagate(False)
-        self.preview_label = tk.Label(preview_wrap, bg=PANEL_BG)
+        self.preview_label = tk.Label(preview_wrap, bg=PANEL_BG, anchor="center")
         self.preview_label.pack(fill="both", expand=True)
         self._preview_photo = None
 
-        text_col = tk.Frame(row, bg=PANEL_BG)
-        text_col.pack(side="left", fill="both", expand=True, padx=(0, 14), pady=12)
+        text_col = tk.Frame(content, bg=PANEL_BG)
+        text_col.pack(side="left")
 
         self.drop_label = tk.Label(
             text_col, text="Ningún video cargado", anchor="w",
@@ -600,6 +605,14 @@ class AvisaVidApp:
             bg=BG, fg=TEXT_MUTED,
         )
         self.status_label.pack(side="left")
+
+        self.timer_label = tk.Label(
+            action_frame, text="", font=(FONT_FAMILY, 11),
+            bg=BG, fg=TEXT_MUTED,
+        )
+        self.timer_label.pack(side="left", padx=(8, 0))
+        self._timer_job = None
+        self._analysis_start = None
 
         # Traducir
         translate_frame = tk.Frame(self.root, bg=BG)
@@ -698,6 +711,7 @@ class AvisaVidApp:
         self._render_metadata()
         self._update_preview(path)
         self.analyze_btn.set_state(True)
+        self.status_label.config(text="Listo para analizar")
 
     def _update_preview(self, path):
         if extract_thumbnail(path, self._thumb_path):
@@ -732,7 +746,19 @@ class AvisaVidApp:
         self.progress.start(12)
         self.status_label.config(text="Analizando…")
         self.text_box.delete("1.0", "end")
+        self._analysis_start = time.time()
+        self._tick_timer()
         threading.Thread(target=self._analyze_thread, daemon=True).start()
+
+    def _tick_timer(self):
+        elapsed = time.time() - self._analysis_start
+        self.timer_label.config(text=fmt_time(elapsed))
+        self._timer_job = self.root.after(1000, self._tick_timer)
+
+    def _stop_timer(self):
+        if self._timer_job is not None:
+            self.root.after_cancel(self._timer_job)
+            self._timer_job = None
 
     def _analyze_thread(self):
         try:
@@ -820,11 +846,14 @@ class AvisaVidApp:
         self.root.after(0, lambda: self.status_label.config(text=msg))
 
     def _on_done(self, results):
+        self._stop_timer()
         self.results = results
         self.progress.stop()
         self.progress.pack_forget()
         self.analyze_btn.set_state(True)
-        self.status_label.config(text=f"Listo — {len(results)} detecciones")
+        elapsed = fmt_time(time.time() - self._analysis_start)
+        self.status_label.config(text=f"Listo — {len(results)} detecciones ({elapsed})")
+        self.timer_label.config(text="")
         self.text_box.delete("1.0", "end")
         if not results:
             self.text_box.insert("end", "No se detectó texto ni audio.")
@@ -838,10 +867,12 @@ class AvisaVidApp:
                 self.text_box.insert("end", line)
 
     def _on_error(self, error):
+        self._stop_timer()
         self.progress.stop()
         self.progress.pack_forget()
         self.analyze_btn.set_state(True)
         self.status_label.config(text="Error")
+        self.timer_label.config(text="")
         messagebox.showerror("Error al analizar", str(error))
 
     def export_text(self):
